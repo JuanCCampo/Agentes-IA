@@ -3,7 +3,7 @@ import asyncio
 import json
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -123,16 +123,16 @@ def eventos(limite: int = 60):
 
 
 @app.get("/api/stream")
-async def stream():
+async def stream(request: Request):
     """Server-Sent Events: el dashboard ve en vivo lo que hacen los agentes."""
     cola = bus.suscribir()
 
     async def gen():
         try:
             yield "retry: 3000\n\n"
-            while True:
+            while not await request.is_disconnected():  # suelta rápido las pestañas cerradas
                 try:
-                    ev = await asyncio.wait_for(cola.get(), timeout=15)
+                    ev = await asyncio.wait_for(cola.get(), timeout=5)
                     yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
                 except asyncio.TimeoutError:
                     yield ": ping\n\n"

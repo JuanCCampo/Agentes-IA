@@ -254,8 +254,10 @@ $("#q").oninput = () => { clearTimeout(tq); tq = setTimeout(contratos, 300); };
 $("#nivel").onchange = contratos;
 
 // --- tiempo real
+let es;
 function conectar() {
-  const es = new EventSource("/api/stream");
+  if (es) es.close();
+  es = new EventSource("/api/stream");
   es.onopen = () => { $("#pLive").textContent = "● en vivo"; $("#pLive").className = "pill on"; };
   es.onerror = () => { $("#pLive").textContent = "● reconectando"; $("#pLive").className = "pill off"; };
   es.onmessage = m => {
@@ -267,6 +269,11 @@ function conectar() {
     if (e.tipo === "boletin") pendiente.boletin = true;
   };
 }
+// Cerrar la conexión en vivo al salir o refrescar: si queda abierta, el navegador
+// se queda sin conexiones libres (máx. 6 por sitio) y la página no vuelve a cargar.
+window.addEventListener("pagehide", () => es && es.close());
+window.addEventListener("beforeunload", () => es && es.close());
+window.addEventListener("pageshow", e => { if (e.persisted) conectar(); });
 const pendiente = {};
 setInterval(() => {   // agrupa refrescos para no saturar el servidor
   if (pendiente.kpis) kpis(); if (pendiente.contratos) contratos(); if (pendiente.alertas) alertas();
