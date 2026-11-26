@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veedor IA</title>
+<style>
+:root{
+  --bg:#0d1117; --panel:#151b24; --panel2:#1b2330; --line:#263041; --text:#e6edf3; --muted:#8b98a9;
+  --accent:#f5b301; --ok:#2ecc71; --mid:#f39c12; --high:#e74c3c; --low:#27ae60; --info:#3b82f6;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line);background:#0b0f15;position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.logo{font-size:20px;font-weight:800;letter-spacing:.3px}
+.logo span{color:var(--accent)}
+.tag{font-size:12px;color:var(--muted)}
+.pill{padding:3px 10px;border-radius:99px;font-size:12px;border:1px solid var(--line);background:var(--panel)}
+.pill.on{border-color:var(--ok);color:var(--ok)} .pill.off{border-color:var(--mid);color:var(--mid)}
+.grow{flex:1}
+main{padding:18px 22px;display:grid;gap:18px;max-width:1500px;margin:auto}
+h2{font-size:14px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 10px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi b{display:block;font-size:22px;white-space:nowrap} .kpi small{color:var(--muted)}
+.agents{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.agent{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;position:relative}
+.agent .top{display:flex;align-items:center;gap:8px}
+.agent .em{font-size:22px}
+.agent .nm{font-weight:700;text-transform:capitalize}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted);margin-left:auto}
+.dot.trabajando{background:var(--info);box-shadow:0 0 0 0 rgba(59,130,246,.7);animation:pulse 1s infinite}
+.dot.esperando{background:var(--ok)} .dot.error{background:var(--high)} .dot.pausado{background:var(--mid)}
+@keyframes pulse{70%{box-shadow:0 0 0 9px rgba(59,130,246,0)}100%{box-shadow:0 0 0 0 rgba(59,130,246,0)}}
+.agent .desc{color:var(--muted);font-size:12px;margin:4px 0 8px}
+.agent .msg{font-size:12.5px;min-height:36px;background:var(--panel2);border-radius:8px;padding:6px 8px}
+.agent .meta{display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:8px;align-items:center}
+button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:12px}
+button:hover{border-color:var(--accent)}
+.cols{display:grid;grid-template-columns:1.1fr 1fr;gap:18px}
+.cols>*,main>*{min-width:0}
+@media (max-width:950px){.cols{grid-template-columns:1fr}}
+@media (max-width:600px){main{padding:14px 16px}header{padding:12px 16px}.tag{display:none}input{min-width:0}.feed .ev{flex-wrap:wrap}}
+.feed{height:340px;overflow:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+.ev{padding:4px 0;border-bottom:1px dashed var(--line);display:flex;gap:8px}
+.ev time{color:var(--muted);flex:none}
+.ev .ag{flex:none;min-width:92px;color:var(--accent)}
+.ev.error .tx{color:var(--high)} .ev.alerta .tx{color:#ff8a7a} .ev.hallazgo .tx{color:#ffb86b}
+.ev.nuevo{animation:flash 1.2s}
+@keyframes flash{from{background:rgba(245,179,1,.18)}to{background:transparent}}
+.alerts{height:340px;overflow:auto;display:grid;gap:8px;align-content:start}
+.alert{border-left:4px solid var(--mid);background:var(--panel2);border-radius:8px;padding:8px 10px}
+.alert.alto{border-color:var(--high)} .alert.bajo{border-color:var(--low)}
+.alert b{display:block;margin-bottom:3px}
+.alert p{margin:0;color:#c9d4df;font-size:13px}
+.alert small{color:var(--muted)}
+.toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+input,select{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 10px;font:inherit}
+input{flex:1;min-width:200px}
+.tablewrap{overflow:auto;max-height:480px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{position:sticky;top:0;background:var(--panel);text-align:left;color:var(--muted);font-weight:600;padding:8px;border-bottom:1px solid var(--line)}
+td{padding:8px;white-space:normal;border-bottom:1px solid var(--line);vertical-align:top}
+tr.row{cursor:pointer} tr.row:hover td{background:var(--panel2)}
+.badge{display:inline-block;min-width:44px;text-align:center;padding:2px 8px;border-radius:99px;font-weight:700;font-size:12px}
+.badge.alto{background:rgba(231,76,60,.18);color:#ff7b6b}
+.badge.medio{background:rgba(243,156,18,.18);color:#ffbf4d}
+.badge.bajo{background:rgba(39,174,96,.18);color:#5fdc93}
+.badge.pend{background:var(--panel2);color:var(--muted)}
+.trunc{max-width:340px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.money{white-space:nowrap;font-variant-numeric:tabular-nums}
+.find{background:var(--panel2);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.find b{display:block} .find p{margin:4px 0 0;color:#c9d4df;font-size:13px}
+.boletin{white-space:normal}
+.boletin h3{margin:0 0 8px;font-size:16px}
+.boletin ul{margin:4px 0;padding-left:18px}
+.chat{display:flex;gap:8px}
+.answer{margin-top:10px;background:var(--panel2);border-radius:10px;padding:10px 12px;white-space:pre-wrap;display:none}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;max-width:760px;width:94vw;padding:0}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+.dlg{padding:18px 20px}
+.dlg h3{margin:0 0 4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:13px;margin:12px 0}
+.grid2 div span{color:var(--muted);display:block;font-size:11.5px}
+.flag{background:var(--panel2);border-radius:8px;padding:6px 10px;margin:4px 0;font-size:13px}
+.flag code{color:var(--accent)}
+.empty{color:var(--muted);font-style:italic;padding:10px}
+a{color:var(--accent)}
+footer{color:var(--muted);text-align:center;font-size:12px;padding:20px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🔎 Veedor <span>IA</span></div>
+  <div class="tag">Agentes autónomos vigilando la contratación pública · 24/7</div>
+  <div class="grow"></div>
+  <span class="pill" id="pFuente">fuente: –</span>
+  <span class="pill" id="pIA">IA: –</span>
+  <span class="pill" id="pLive">● conectando…</span>
+</header>
+
+<main>
+  <section class="kpis" id="kpis"></section>
+
+  <section>
+    <h2>Equipo de agentes</h2>
+    <div class="agents" id="agents"></div>
+  </section>
+
+  <section class="cols">
+    <div class="panel"><h2>Actividad en vivo</h2><div class="feed" id="feed"></div></div>
+    <div class="panel"><h2>🚨 Alertas ciudadanas</h2><div class="alerts" id="alerts"></div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Contratos vigilados</h2>
+    <div class="toolbar">
+      <input id="q" placeholder="Buscar entidad, proveedor, objeto o ID…">
+      <select id="nivel"><option value="">Todos los niveles</option><option value="alto">Riesgo alto</option><option value="medio">Riesgo medio</option><option value="bajo">Riesgo bajo</option></select>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Riesgo</th><th>Entidad</th><th>Objeto</th><th>Proveedor</th><th>Modalidad</th><th>Valor</th><th>Firma</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+  </section>
+
+  <section class="cols">
+    <div class="panel"><h2>🕵️ Patrones detectados</h2><div id="hallazgos" style="max-height:380px;overflow:auto"></div></div>
+    <div class="panel">
+      <h2>💬 Pregúntale al Veedor</h2>
+      <div class="chat"><input id="preg" placeholder="Ej: ¿Qué entidad tiene más contratos riesgosos?"><button id="btnPreg">Preguntar</button></div>
+      <div class="answer" id="resp"></div>
+      <h2 style="margin-top:18px">📰 Último boletín</h2>
+      <div class="boletin" id="boletin"><div class="empty">El Redactor publicará el primer boletín pronto…</div></div>
+    </div>
+  </section>
+</main>
+<footer>Veedor IA · Un puntaje de riesgo alto no es prueba de irregularidad: es una señal para que la ciudadanía revise. Datos: SECOP II (datos.gov.co).</footer>
+
+<dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pesos = v => "$" + Math.round(v || 0).toLocaleString("es-CO");
+const corto = v => v >= 1e9 ? "$" + (v/1e9).toFixed(1) + " mil M" : v >= 1e6 ? "$" + (v/1e6).toFixed(0) + " M" : pesos(v);
+const hora = iso => new Date(iso).toLocaleTimeString("es-CO", {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+const api = (u, o) => fetch(u, o).then(r => r.json());
+const badge = c => c.puntaje == null ? '<span class="badge pend">…</span>' : `<span class="badge ${c.nivel}">${c.puntaje}</span>`;
+const md = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/^#+ (.*)$/gm, "<b>$1</b>")
+  .replace(/(^|\n)- (.*)/g, "$1<li>$2</li>").replace(/(<li>.*<\/li>)/gs, "<ul>$1</ul>").replace(/\n/g, "<br>").replace(/<\/li><br>/g, "</li>");
+
+async function kpis() {
+  const s = await api("/api/resumen");
+  $("#pFuente").textContent = "fuente: " + s.fuente.toUpperCase();
+  $("#pIA").textContent = s.ia ? "IA: " + s.modelo : "IA: modo reglas";
+  $("#pIA").className = "pill " + (s.ia ? "on" : "off");
+  const k = [["Contratos vigilados", s.total], ["Analizados", s.analizados], ["Riesgo alto", s.altos],
+             ["Riesgo medio", s.medios], ["Valor observado", corto(s.valor)], ["Valor en riesgo alto", corto(s.valor_alto)],
+             ["Patrones", s.hallazgos], ["Alertas", s.alertas]];
+  $("#kpis").innerHTML = k.map(([t, v]) => `<div class="kpi"><small>${t}</small><b>${v}</b></div>`).join("");
+}
+
+async function agentes() {
+  const a = await api("/api/agentes");
+  $("#agents").innerHTML = a.map(x => {
+    const hace = x.ultimo_latido ? Math.max(0, Math.round(Date.now()/1000 - x.ultimo_latido)) + "s" : "–";
+    return `<div class="agent">
+      <div class="top"><span class="em">${x.emoji}</span><span class="nm">${x.nombre}</span><span class="dot ${x.estado}" title="${x.estado}"></span></div>
+      <div class="desc">${esc(x.descripcion)}</div>
+      <div class="msg">${esc(x.ultimo_mensaje || "…")}</div>
+      <div class="meta"><span>${x.estado} · ciclos ${x.ciclos} · latido ${hace}</span>
+        <span style="white-space:nowrap">${x.estado === "pausado"
+          ? `<button onclick="ctrl('${x.nombre}','reanudar')">▶ Reanudar</button>`
+          : `<button onclick="ctrl('${x.nombre}','pausar')">❚❚ Pausar</button>`}
+          <button onclick="ctrl('${x.nombre}','reiniciar')" title="Reiniciar">↻</button></span></div>
+    </div>`}).join("");
+}
+async function ctrl(n, a) { await api(`/api/agentes/${n}/${a}`, {method: "POST"}); agentes(); }
+
+function pintarEvento(e, nuevo) {
+  const d = document.createElement("div");
+  d.className = `ev ${e.tipo}${nuevo ? " nuevo" : ""}`;
+  d.innerHTML = `<time>${hora(e.creado)}</time><span class="ag">${esc(e.agente)}</span><span class="tx">${esc(e.mensaje)}</span>`;
+  const f = $("#feed");
+  nuevo ? f.prepend(d) : f.append(d);
+  while (f.children.length > 150) f.lastChild.remove();
+}
+
+async function alertas() {
+  const a = await api("/api/alertas");
+  $("#alerts").innerHTML = a.length ? a.map(x => `<div class="alert ${x.nivel}" ${x.origen === "contrato" ? `onclick="detalle('${esc(x.ref)}')" style="cursor:pointer"` : ""}>
+    <b>${esc(x.titulo)}</b><p>${esc(x.mensaje)}</p><small>${hora(x.creado)} · ${x.origen}</small></div>`).join("")
+    : '<div class="empty">Aún no hay alertas.</div>';
+}
+
+let tq;
+async function contratos() {
+  const p = new URLSearchParams({q: $("#q").value, nivel: $("#nivel").value});
+  const c = await api("/api/contratos?" + p);
+  $("#tbody").innerHTML = c.length ? c.map(x => `<tr class="row" onclick="detalle('${esc(x.id)}')">
+    <td>${badge(x)}</td><td><div class="trunc">${esc(x.entidad)}</div></td><td><div class="trunc">${esc(x.objeto)}</div></td>
+    <td><div class="trunc">${esc(x.proveedor)}</div></td><td>${esc(x.modalidad)}</td>
+    <td class="money">${pesos(x.valor)}</td><td style="white-space:nowrap">${esc(x.fecha_firma || "")}</td></tr>`).join("")
+    : '<tr><td colspan="7" class="empty">El Recolector está trayendo contratos…</td></tr>';
+}
+
+async function hallazgos() {
+  const h = await api("/api/hallazgos");
+  $("#hallazgos").innerHTML = h.length ? h.map(x => `<div class="find"><b>${badge({puntaje: x.puntaje, nivel: x.puntaje >= 60 ? "alto" : "medio"})} ${esc(x.titulo)}</b>
+    <p>${esc(x.detalle)}</p><small style="color:var(--muted)">${x.contratos.length} contratos: ${x.contratos.slice(0, 4).map(i => `<a href="#" onclick="detalle('${esc(i)}');return false">${esc(i)}</a>`).join(", ")}${x.contratos.length > 4 ? "…" : ""}</small></div>`).join("")
+    : '<div class="empty">El Investigador aún no encuentra patrones.</div>';
+}
+
+async function boletin() {
+  const b = await api("/api/boletines");
+  if (b.length) $("#boletin").innerHTML = `<h3>${esc(b[0].titulo)}</h3>${md(b[0].contenido)}<p><small style="color:var(--muted)">${new Date(b[0].creado).toLocaleString("es-CO")}</small></p>`;
+}
+
+async function detalle(id) {
+  const c = await api("/api/contratos/" + encodeURIComponent(id));
+  if (c.detail) return;
+  $("#dlgBody").innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:10px"><div><h3>${esc(c.entidad)}</h3><small style="color:var(--muted)">${esc(c.id)} · ${esc(c.fuente)}</small></div>
+    <div style="text-align:right">${badge(c)}<br><button style="margin-top:8px" onclick="dlg.close()">Cerrar</button></div></div>
+    <p>${esc(c.objeto)}</p>
+    <div class="grid2">
+      <div><span>Proveedor</span>${esc(c.proveedor)} (${esc(c.doc_proveedor)})</div>
+      <div><span>Valor</span>${pesos(c.valor)}</div>
+      <div><span>Modalidad</span>${esc(c.modalidad)}</div>
+      <div><span>Tipo</span>${esc(c.tipo)}</div>
+      <div><span>Firma / Inicio / Fin</span>${esc(c.fecha_firma)} · ${esc(c.fecha_inicio)} · ${esc(c.fecha_fin)}</div>
+      <div><span>Estado</span>${esc(c.estado)}</div>
+    </div>
+    <h2>Análisis del Auditor</h2>
+    <p style="white-space:pre-wrap">${esc(c.resumen || "Pendiente de análisis…")}</p>
+    ${c.banderas.map(b => `<div class="flag"><code>${esc(b.codigo)}</code> +${b.peso} · ${esc(b.descripcion)}</div>`).join("")}
+    ${c.otros_del_proveedor.length ? `<h2 style="margin-top:14px">Otros contratos del proveedor</h2>` + c.otros_del_proveedor.map(o =>
+      `<div class="flag">${badge({puntaje: o.puntaje, nivel: o.puntaje >= 60 ? "alto" : o.puntaje >= 30 ? "medio" : "bajo"})} ${esc(o.entidad)} · ${pesos(o.valor)} · ${esc(o.fecha_firma)}</div>`).join("") : ""}
+    ${c.url ? `<p><a href="${esc(c.url)}" target="_blank" rel="noopener">Ver en SECOP II ↗</a></p>` : ""}`;
+  $("#dlg").showModal();
+}
+const dlg = $("#dlg");
+
+$("#btnPreg").onclick = async () => {
+  const q = $("#preg").value.trim(); if (!q) return;
+  const r = $("#resp"); r.style.display = "block"; r.textContent = "El Veedor está pensando…";
+  const res = await api("/api/preguntar", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({pregunta: q})});
+  r.textContent = res.respuesta || res.detail;
+};
+$("#preg").addEventListener("keydown", e => e.key === "Enter" && $("#btnPreg").click());
+$("#q").oninput = () => { clearTimeout(tq); tq = setTimeout(contratos, 300); };
+$("#nivel").onchange = contratos;
+
+// --- tiempo real
+function conectar() {
+  const es = new EventSource("/api/stream");
+  es.onopen = () => { $("#pLive").textContent = "● en vivo"; $("#pLive").className = "pill on"; };
+  es.onerror = () => { $("#pLive").textContent = "● reconectando"; $("#pLive").className = "pill off"; };
+  es.onmessage = m => {
+    const e = JSON.parse(m.data);
+    pintarEvento(e, true);
+    if (["analisis", "recoleccion"].includes(e.tipo)) { pendiente.contratos = pendiente.kpis = true; }
+    if (e.tipo === "alerta") pendiente.alertas = pendiente.kpis = true;
+    if (e.tipo === "hallazgo") pendiente.hallazgos = pendiente.kpis = true;
+    if (e.tipo === "boletin") pendiente.boletin = true;
+  };
+}
+const pendiente = {};
+setInterval(() => {   // agrupa refrescos para no saturar el servidor
+  if (pendiente.kpis) kpis(); if (pendiente.contratos) contratos(); if (pendiente.alertas) alertas();
+  if (pendiente.hallazgos) hallazgos(); if (pendiente.boletin) boletin();
+  for (const k in pendiente) delete pendiente[k];
+}, 2500);
+setInterval(agentes, 2000);
+
+(async () => {
+  (await api("/api/eventos")).forEach(e => pintarEvento(e, false));
+  kpis(); agentes(); alertas(); contratos(); hallazgos(); boletin(); conectar();
+})();
+</script>
+</body>
+</html>
